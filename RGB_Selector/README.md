@@ -1,5 +1,5 @@
 # RBG Selector
-The RGB Selector project is an embedded system application designed to control the color of an RGB LED using three potentiometers. The project is implemented on an ESP32 microcontroller and utilizes the FreeRTOS operating system for task management.
+The RGB Selector project is designed to control the color of an RGB LED using three potentiometers. This project is implemented on an ESP32 microcontroller (WROVER kit) and utilizes the FreeRTOS operating system for task management.
 
 This project could have been implemented without a microcontroller, but it served as a "test project" for me since it is my first project using microcntrollers and ESP-IDF framework.
 
@@ -23,8 +23,7 @@ This project could have been implemented without a microcontroller, but it serve
 
 ### Code Overview
 - **setup()**: Configures the GPIO, PWM, and ADC settings.
-- **Led_setColor()**: Sets the LED color based on the provided RGB values.
 - **get_color()**: Reads the potentiometer values and converts them to RGB values.
+- **Led_setColor()**: Sets the LED color based on the provided RGB values.
 - **app_main()**: Main application loop that continuously updates the LED color based on potentiometer readings.
 
-This project demonstrates the use of FreeRTOS, ADC, and PWM on the ESP32 to create an interactive RGB LED controller.
