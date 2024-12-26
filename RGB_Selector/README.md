@@ -3,6 +3,8 @@ The RGB Selector project is an embedded system application designed to control t
 
 This project could have been implemented without a microcontroller, but it served as a "test project" for me since it is my first project using microcntrollers and ESP-IDF framework.
 
+![Schematics](./Schematics.png)
+
 ### Features
 - **LED Control**: Adjust the brightness of red, green, and blue channels of an RGB LED.
 - **Analog Input**: Read analog values from three potentiometers to determine the LED color.
