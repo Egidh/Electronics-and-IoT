@@ -22,7 +22,7 @@ This project serves as a demonstration of controlling an LED matrix and creating
 3. **Display Frame**: Update the LED matrix to display the current frame.
 
 ### Why am I using WDT Reset
-It is important to reset the Task WatchDog Timer (TWDT) because, without it, the board would reset every 5 seconds due to continuous looping, causing a black screen for a few milliseconds. This is why I initialize the TWDT and reset it frequently in the code.
+You will notice while going through my code that I reset the Task WatchDog Timer (TWDT) on each loop. It is important to do so because, without it, the board would reset every 5 seconds due to continuous looping, causing a black screen for a few milliseconds.
 
 An alternative approach is to be to disable the Task WatchDog Timer (TWDT) but I would not recommend you to do that. If you prefer not to work around the TWDT, you can increase the tick rate. This adjustment allows you to call `vTaskDelay` with a value less than 10ms, preventing the flicker effect. Consequently, the TWDT can reset itself automatically.
 
