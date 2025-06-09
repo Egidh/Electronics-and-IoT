@@ -15,7 +15,10 @@ My idea for this project is to have a fully functional clock, connected to the i
 The use case may differ as this project goes on.
 
 ## Actual state of the project:
-As for now, I implemented the Access Point/Station (AP/STA) mode and the captive portal, which still need some tweaking !
+As for now, I implemented the :
+- Access Point/Station (AP/STA) mode
+- Read/Write on nvs storage
+- Captive portal, which still need some tweaking !
 
 ## What I learnt so far:
 - **Wifi management** on esp32
