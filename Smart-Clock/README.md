@@ -3,8 +3,8 @@
 *this project is based on ESP-IDF framework*
 
 >Warning : As for now, this project is still in development, it will not work as expected.
->The DNS captive portal does work on Ubuntu, but has compatibility issues with Android. 
->Those are the ONLY two platforms I have tried. I can't assure anything about other available platforms such as iOS or Windows
+>The DNS captive portal does work on Ubuntu and iOS, but has compatibility issues with Android. 
+>Those are the ONLY three platforms I have tried. I can't assure anything about other available platforms such as Windows
 
 ## Introduction:
 **My main goal in this project is, as always, to learn new things!**<br>
