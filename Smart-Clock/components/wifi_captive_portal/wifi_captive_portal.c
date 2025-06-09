@@ -1,4 +1,4 @@
-#include "wifi_dns_server.h"
+#include "wifi_captive_portal.h"
 
 static int getQuestionLength(uint8_t *buffer, int maxLen)
 {
@@ -43,7 +43,7 @@ void DNSserverTask(void *taskParam)
         .name = htons(0xC00C), // pointer to the name (offset 12)
         .type = htons(0x0001), // A
         .clas = htons(0x0001), // IN
-        .ttl = htonl(0),       // 5 minutes test avec 0
+        .ttl = htonl(0),       // 0 to avoid DNS poisoning
         .len = htons(4),       // IPv4 = 4 bytes
     };
 

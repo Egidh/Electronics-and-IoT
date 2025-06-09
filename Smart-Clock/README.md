@@ -1,6 +1,6 @@
 # Connected Clock
 
-*this project is based on ESP-IDF framework*
+*This project is based on ESP-IDF framework*
 
 >Warning : As for now, this project is still in development, it will not work as expected.
 >The DNS captive portal does work on Ubuntu and iOS, but has compatibility issues with Android. 
@@ -18,7 +18,7 @@ The use case may differ as this project goes on.
 As for now, I implemented the :
 - Access Point/Station (AP/STA) mode
 - Read/Write on nvs storage
-- Captive portal, which still need some tweaking !
+- Captive portal
 
 ## What I learnt so far:
 - **Wifi management** on esp32
