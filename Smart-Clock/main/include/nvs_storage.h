@@ -16,5 +16,7 @@ bool nvs_Storage_GetWifiCreds(char *ssid, char *passwd);
 /// @brief Write on an nvs partition the wifi credential of the AP
 /// @param ssid The ssid of the AP
 /// @param passwd The password of the AP
-/// @return
-void nvs_Storage_SetWifiCreds(char *ssid, char *passwd);
+esp_err_t nvs_Storage_SetWifiCreds(char *ssid, char *passwd);
+
+/// @brief Erase all previous WiFi configuration
+esp_err_t nvs_Storage_EraseWifiCreds();

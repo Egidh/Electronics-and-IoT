@@ -53,9 +53,6 @@ typedef struct DNSanswer
 } DNSanswer;
 #pragma pack(pop)
 
-/// @brief Start the http server in order to retrieve wifi credentials
-void httpServer_start();
-
 /// @brief Start the DNS server to do a captive portal
 /// @return The server's name
 DNSserver *DNSserver_StartSocket();

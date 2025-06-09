@@ -26,3 +26,5 @@ As for now, I implemented the :
 - **FreeRTOS tasks** for the DNS server
 - **nslookup** for debugging
 - Overall knowledge on **DHCP**, **DNS**, and **TCP/IP**
+
+*Note for myself: need to change the way I handle the wifi init in sta*

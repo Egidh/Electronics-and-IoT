@@ -93,7 +93,7 @@ esp_netif_t *wifi_init_sta()
     strncpy((char *)w_config.sta.password, passwd, sizeof(w_config.sta.password));
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &w_config));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &w_config)); // Need to handle this differently because it reboot if the AP isn't reachable or if the credentials are wrong
     ESP_ERROR_CHECK(esp_wifi_start());
 
     EventBits_t bits = xEventGroupWaitBits(wifi_event_group,
