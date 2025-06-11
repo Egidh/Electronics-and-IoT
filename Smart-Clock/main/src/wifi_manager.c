@@ -88,9 +88,10 @@ esp_netif_t *wifi_init_sta()
     wifi_init_config_t w_init_config = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&w_init_config));
 
-    wifi_config_t w_config;
+    wifi_config_t w_config = {0};
     strncpy((char *)w_config.sta.ssid, ssid, sizeof(w_config.sta.ssid));
     strncpy((char *)w_config.sta.password, passwd, sizeof(w_config.sta.password));
+    w_config.sta.sae_pwe_h2e = WPA3_SAE_PWE_BOTH;
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &w_config)); // Need to handle this differently because it reboot if the AP isn't reachable or if the credentials are wrong

@@ -48,10 +48,12 @@ static esp_err_t httpServer_submitHandler(httpd_req_t *req)
 	char *buffer = malloc(len);
 	httpd_req_recv(req, buffer, len);
 
+	buffer[len] = 0;
 	httpd_query_key_value(buffer, "ssid", ssid, 32);
 	httpd_query_key_value(buffer, "password", password, 64);
 	// Debug
-	ESP_LOGI(TAG_HTTP, "SSID : %s password : %s", ssid, password);
+	ESP_LOGI(TAG_HTTP, "Buffer : %s", buffer);
+	ESP_LOGI(TAG_HTTP, "SSID : %s, password : %s", ssid, password);
 
 	free(buffer);
 

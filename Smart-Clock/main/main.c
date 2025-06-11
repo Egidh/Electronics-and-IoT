@@ -1,10 +1,12 @@
 #include "nvs_flash.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
+#include "driver/gpio.h"
 
 #include "wifi_manager.h"
 #include "wifi_http_server.h"
 #include "wifi_captive_portal.h"
+#include "st7789.h"
 
 #define CREDENTIALS_SAVED_BIT BIT0
 #define CREDENTIALS_FAILED_BIT BIT1
@@ -47,8 +49,29 @@ void app_main(void)
 
     wifi_credentials_event = xEventGroupCreate();
 
-    // Uncomment for debugging
-    nvs_Storage_EraseWifiCreds();
+    // Tool for debugging
+    gpio_config_t config = {
+        .pin_bit_mask = (1ULL << 14),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    ESP_ERROR_CHECK(gpio_config(&config));
+
+    vTaskDelay(20 / portTICK_PERIOD_MS);
+
+    if (!gpio_get_level(GPIO_NUM_14))
+    {
+        ESP_LOGW("MAIN", "Will reset WiFi configuration");
+        nvs_Storage_EraseWifiCreds();
+    }
+    // End of the tool
+
+    lcd_init();
+    lcd_draw_rect(0, 0, 150, 100, 0xf800);
+    // lcd_draw_rect(0, 0, 100, 150, 0x0001);
+    // lcd_draw_rect(0, 150, 100, 150, 0xf800);
 
     esp_netif_t *sta_handle = wifi_init_sta();
     if (sta_handle == NULL)
