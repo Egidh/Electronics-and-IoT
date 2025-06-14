@@ -6,7 +6,9 @@
 #include "wifi_manager.h"
 #include "wifi_http_server.h"
 #include "wifi_captive_portal.h"
-#include "st7789.h"
+
+#include "display.h"
+#include "clock.h"
 
 #define CREDENTIALS_SAVED_BIT BIT0
 #define CREDENTIALS_FAILED_BIT BIT1
@@ -49,7 +51,7 @@ void app_main(void)
 
     wifi_credentials_event = xEventGroupCreate();
 
-    // Tool for debugging
+    // Debug tool : push button to erase WiFi stored credentials
     gpio_config_t config = {
         .pin_bit_mask = (1ULL << 14),
         .mode = GPIO_MODE_INPUT,
@@ -68,10 +70,8 @@ void app_main(void)
     }
     // End of the tool
 
-    lcd_init();
-    lcd_draw_rect(0, 0, 150, 100, 0xf800);
-    // lcd_draw_rect(0, 0, 100, 150, 0x0001);
-    // lcd_draw_rect(0, 150, 100, 150, 0xf800);
+    // lv_display_t *display = lcd_init();
+    // lcd_display_text(display, NULL, "Hello World");
 
     esp_netif_t *sta_handle = wifi_init_sta();
     if (sta_handle == NULL)
