@@ -40,7 +40,7 @@ esp_err_t st7789_init()
     ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel_handle, true));  // needed because of my controller (st7789v3) specification
     ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel_handle, true));       // horizontal orientation
     ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel_handle, true, false)); // (0;0) will be on the top left corner
-    //ESP_ERROR_CHECK(esp_lcd_panel_set_gap(panel_handle, 0, 34));      // There is an offset of 34 pixels on the x axis
+    ESP_ERROR_CHECK(esp_lcd_panel_set_gap(panel_handle, 0, 34));      // There is an offset of 34 pixels on the x axis
 
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, true));
 
@@ -61,14 +61,14 @@ void lv_flush_cb(lv_display_t *display, const lv_area_t *area, uint8_t *px_map)
 
 void lv_timer_task(void *pvParameter)
 {
-    while(true)
+    while (true)
     {
         _lock_acquire(&lvgl_api_lock);
         uint32_t time_till_next = lv_timer_handler();
         _lock_release(&lvgl_api_lock);
 
         if (time_till_next == LV_NO_TIMER_READY)
-            time_till_next = LV_DEF_REFR_PERIOD; 
+            time_till_next = LV_DEF_REFR_PERIOD;
 
         vTaskDelay(time_till_next / portTICK_PERIOD_MS);
     }
@@ -105,14 +105,16 @@ lv_display_t *lcd_init()
     lv_tick_set_cb(xTaskGetTickCount);
     xTaskCreate(lv_timer_task, "Timer task", 4096, NULL, 5, NULL);
 
-    lv_obj_set_style_bg_color(lv_screen_active(), lv_color_hex(0x003a57), LV_PART_MAIN);
+    _lock_acquire(&lvgl_api_lock);
+    lv_obj_set_style_bg_color(lv_screen_active(), lv_color_hex(0xff0000), LV_PART_MAIN);
+    _lock_release(&lvgl_api_lock);
 
-        ESP_LOGI(TAG_LCD, "Succesfully initialized LCD display");
+    ESP_LOGI(TAG_LCD, "Succesfully initialized LCD display");
 
     return display;
 }
 
-void lcd_display_text(lv_display_t *self, lv_obj_t *label, const char *text)
+lv_obj_t *lcd_display_text(lv_display_t *self, lv_obj_t *label, const char *text)
 {
     if (!self)
     {
@@ -122,7 +124,7 @@ void lcd_display_text(lv_display_t *self, lv_obj_t *label, const char *text)
 
     _lock_acquire(&lvgl_api_lock);
     lv_obj_t *screen = lv_display_get_screen_active(self);
-    
+
     if (!label)
     {
         label = lv_label_create(screen);
@@ -130,7 +132,10 @@ void lcd_display_text(lv_display_t *self, lv_obj_t *label, const char *text)
     }
 
     lv_label_set_text_static(label, text);
-    //lv_obj_set_style_text_color(label, lv_color_hex(0xffffff), LV_PART_MAIN);
+    lv_obj_set_style_text_color(screen, lv_color_hex(0xffffff), LV_PART_MAIN);
+    lv_obj_set_style_text_font(screen, &lv_font_montserrat_20, LV_PART_MAIN);
 
     _lock_release(&lvgl_api_lock);
+
+    return label;
 }

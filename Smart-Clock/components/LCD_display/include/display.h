@@ -42,4 +42,5 @@ lv_display_t *lcd_init();
 /// @param self The lv_display to print the text on
 /// @param label The lv_label to contain the text, if NULL a label will be created and set to the center of the screen
 /// @param text The text to display
-void lcd_display_text(lv_display_t *self, lv_obj_t *label, const char *text);
+/// @return The label passed as an argument or the one created in case the user did not pass any
+lv_obj_t *lcd_display_text(lv_display_t *self, lv_obj_t *label, const char *text);

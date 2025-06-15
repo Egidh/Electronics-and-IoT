@@ -71,7 +71,9 @@ void app_main(void)
     // End of the tool
 
     // lv_display_t *display = lcd_init();
-    // lcd_display_text(display, NULL, "Hello World");
+    // lv_obj_t *my_label = lcd_display_text(display, NULL, "Hello World !");
+    // vTaskDelay(1000/portTICK_PERIOD_MS);
+    // lcd_display_text(display, my_label, "Goodbye World !");
 
     esp_netif_t *sta_handle = wifi_init_sta();
     if (sta_handle == NULL)
