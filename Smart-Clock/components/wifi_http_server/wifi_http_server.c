@@ -62,6 +62,14 @@ static esp_err_t httpServer_submitHandler(httpd_req_t *req)
 	return err;
 }
 
+static esp_err_t httpServer_204Handler(httpd_req_t *req)
+{
+	httpd_resp_set_status(req, "302 Found");
+	httpd_resp_set_hdr(req, "Location", "/");
+	httpd_resp_send(req, NULL, 0);
+	return ESP_OK;
+}
+
 static esp_err_t redirect_handler(httpd_req_t *req, httpd_err_code_t err)
 {
 	httpd_resp_set_status(req, "302 Found");
@@ -89,10 +97,17 @@ void httpServer_start(wifi_credentials_callback func)
 			.handler = httpServer_submitHandler,
 			.user_ctx = NULL};
 
+		httpd_uri_t generate_204_uri = {
+			.uri = "/generate_204",
+			.method = HTTP_GET,
+			.handler = httpServer_204Handler,
+			.user_ctx = NULL,
+		};
+
 		ESP_ERROR_CHECK(httpd_register_uri_handler(server, &captive_portal_uri));
 		ESP_ERROR_CHECK(httpd_register_uri_handler(server, &submit_uri));
+		ESP_ERROR_CHECK(httpd_register_uri_handler(server, &generate_204_uri));
 		ESP_ERROR_CHECK(httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, redirect_handler));
-
 		httpServer_registerCredentialCallback(func);
 
 		ESP_LOGI(TAG_HTTP, "HTTP server started on port %d", config.server_port);

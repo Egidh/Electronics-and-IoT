@@ -3,7 +3,7 @@
 esp_lcd_panel_io_handle_t panel_io_handle;
 esp_lcd_panel_handle_t panel_handle;
 
-_lock_t lvgl_api_lock;
+static _lock_t lvgl_api_lock;
 
 esp_err_t st7789_init()
 {
@@ -106,7 +106,7 @@ lv_display_t *lcd_init()
     xTaskCreate(lv_timer_task, "Timer task", 4096, NULL, 5, NULL);
 
     _lock_acquire(&lvgl_api_lock);
-    lv_obj_set_style_bg_color(lv_screen_active(), lv_color_hex(0xff0000), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(lv_screen_active(), lv_color_hex(0x000000), LV_PART_MAIN);
     _lock_release(&lvgl_api_lock);
 
     ESP_LOGI(TAG_LCD, "Succesfully initialized LCD display");
@@ -114,28 +114,56 @@ lv_display_t *lcd_init()
     return display;
 }
 
-lv_obj_t *lcd_display_text(lv_display_t *self, lv_obj_t *label, const char *text)
+lv_obj_t *lcd_display_text(lv_display_t *self, lv_obj_t *label, const char *text, lv_font_t *font, lv_color_t color, lv_align_t align)
 {
     if (!self)
     {
         ESP_LOGW(TAG_LCD, "Error displaying text: self is NULL");
-        return;
+        return NULL;
     }
 
     _lock_acquire(&lvgl_api_lock);
     lv_obj_t *screen = lv_display_get_screen_active(self);
 
     if (!label)
-    {
         label = lv_label_create(screen);
-        lv_obj_set_align(label, LV_ALIGN_CENTER);
-    }
 
+    lv_obj_set_align(label, align);
     lv_label_set_text_static(label, text);
-    lv_obj_set_style_text_color(screen, lv_color_hex(0xffffff), LV_PART_MAIN);
-    lv_obj_set_style_text_font(screen, &lv_font_montserrat_20, LV_PART_MAIN);
+    lv_obj_set_style_text_color(label, color, LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, font, LV_PART_MAIN);
 
     _lock_release(&lvgl_api_lock);
 
     return label;
+}
+
+lv_obj_t *lcd_display_long_text(lv_display_t *self, lv_obj_t *label, const char *text, lv_font_t *font, lv_color_t color, lv_align_t align)
+{
+    if (!self)
+    {
+        ESP_LOGW(TAG_LCD, "Error displaying text: self is NULL");
+        return NULL;
+    }
+
+    _lock_acquire(&lvgl_api_lock);
+    lv_obj_t *screen = lv_display_get_screen_active(self);
+
+    if (!label)
+        label = lv_label_create(screen);
+
+    lv_obj_set_align(label, align);
+    lv_label_set_text_static(label, text);
+    lv_label_set_long_mode(label, LV_LABEL_LONG_MODE_WRAP);
+    lv_obj_set_style_text_color(label, color, LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, font, LV_PART_MAIN);
+
+    _lock_release(&lvgl_api_lock);
+
+    return label;
+}
+
+_lock_t get_lvgl_api_lock()
+{
+    return lvgl_api_lock;
 }

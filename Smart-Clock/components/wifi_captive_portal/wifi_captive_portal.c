@@ -108,7 +108,6 @@ DNSserver *DNSserver_StartSocket()
     server->sock = sock;
 
     xTaskCreate(DNSserverTask, "Captive Portal", 4096, server, 5, &server->task);
-    printf("Task_created\n");
-
+    
     return NULL;
 }

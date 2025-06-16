@@ -8,7 +8,6 @@
 #include "driver/gpio.h"
 
 #include "esp_log.h"
-
 #include "lvgl.h"
 
 #define LCD_OFFSET_X 34
@@ -38,9 +37,25 @@
 /// @return A pointer to the lv_display struct
 lv_display_t *lcd_init();
 
-/// @brief Display a text on the LCD screen
+/// @brief Display a text on the LCD screen (thread safe)
 /// @param self The lv_display to print the text on
 /// @param label The lv_label to contain the text, if NULL a label will be created and set to the center of the screen
 /// @param text The text to display
+/// @param font The font
+/// @param color The text color
+/// @param align The alignement
 /// @return The label passed as an argument or the one created in case the user did not pass any
-lv_obj_t *lcd_display_text(lv_display_t *self, lv_obj_t *label, const char *text);
+lv_obj_t *lcd_display_text(lv_display_t *self, lv_obj_t *label, const char *text, lv_font_t *font, lv_color_t color, lv_align_t align);
+
+/// @brief Display a text on the LCD screen and wrap lines if they are too long to fit (thread safe)
+/// @param self The lv_display to print the text on
+/// @param label The lv_label to contain the text, if NULL a label will be created and set to the center of the screen
+/// @param text The text to display
+/// @param font The font
+/// @param color The text color
+/// @param align The alignement
+/// @return The label passed as an argument or the one created in case the user did not pass any
+lv_obj_t *lcd_display_long_text(lv_display_t *self, lv_obj_t *label, const char *text, lv_font_t *font, lv_color_t color, lv_align_t align);
+
+/// @brief Return the lvgl lock for mutex. Be sure to call lcd_init beforehand
+_lock_t get_lvgl_api_lock();
