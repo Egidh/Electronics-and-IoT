@@ -15,6 +15,7 @@ As for now, I implemented the :
 - Access Point/Station (AP/STA) mode
 - Read/Write on nvs storage
 - Captive portal
+- Display on LCD (basic UI for now)
 
 ## What I learnt so far:
 - **Wifi management** on esp32
@@ -22,5 +23,6 @@ As for now, I implemented the :
 - **FreeRTOS tasks** for the DNS server
 - **nslookup** for debugging
 - Overall knowledge on **DHCP**, **DNS**, and **TCP/IP**
+- **LVGL** library for the LCD display
 
 *Note for myself: need to change the way I handle the wifi init in sta*
