@@ -114,11 +114,11 @@ lv_display_t *lcd_init()
     return display;
 }
 
-lv_obj_t *lcd_display_text(lv_display_t *self, lv_obj_t *label, const char *text, lv_font_t *font, lv_color_t color, lv_align_t align)
+lv_obj_t *lcd_display_text(lv_display_t *self, lv_obj_t *label, const char *text, const lv_font_t *font, lv_color_t color, lv_align_t align)
 {
     if (!self)
     {
-        ESP_LOGW(TAG_LCD, "Error displaying text: self is NULL");
+        ESP_LOGW(TAG_LCD, "Error displaying text: display is NULL");
         return NULL;
     }
 
@@ -129,32 +129,9 @@ lv_obj_t *lcd_display_text(lv_display_t *self, lv_obj_t *label, const char *text
         label = lv_label_create(screen);
 
     lv_obj_set_align(label, align);
-    lv_label_set_text_static(label, text);
-    lv_obj_set_style_text_color(label, color, LV_PART_MAIN);
-    lv_obj_set_style_text_font(label, font, LV_PART_MAIN);
-
-    _lock_release(&lvgl_api_lock);
-
-    return label;
-}
-
-lv_obj_t *lcd_display_long_text(lv_display_t *self, lv_obj_t *label, const char *text, lv_font_t *font, lv_color_t color, lv_align_t align)
-{
-    if (!self)
-    {
-        ESP_LOGW(TAG_LCD, "Error displaying text: self is NULL");
-        return NULL;
-    }
-
-    _lock_acquire(&lvgl_api_lock);
-    lv_obj_t *screen = lv_display_get_screen_active(self);
-
-    if (!label)
-        label = lv_label_create(screen);
-
-    lv_obj_set_align(label, align);
-    lv_label_set_text_static(label, text);
     lv_label_set_long_mode(label, LV_LABEL_LONG_MODE_WRAP);
+    lv_obj_set_width(label, LCD_WIDTH - 20);
+    lv_label_set_text_static(label, text);
     lv_obj_set_style_text_color(label, color, LV_PART_MAIN);
     lv_obj_set_style_text_font(label, font, LV_PART_MAIN);
 

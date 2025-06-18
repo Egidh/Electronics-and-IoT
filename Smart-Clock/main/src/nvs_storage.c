@@ -49,7 +49,7 @@ bool nvs_Storage_GetWifiCreds(char *ssid, char *passwd)
         switch (err)
         {
         case ESP_OK:
-            ESP_LOGI(TAG_NVS, "password : %s\n", passwd);
+            ESP_LOGI(TAG_NVS, "password saved");
             break;
         case ESP_ERR_NVS_NOT_FOUND:
             ESP_LOGI(TAG_NVS, "No data found\n");
