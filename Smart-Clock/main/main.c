@@ -131,7 +131,7 @@ void app_main(void)
 
     lvgl_api_lock = get_lvgl_api_lock();
 
-    main_label = lcd_display_text(display, NULL, "Attempting to connect to the internet", &lv_font_montserrat_20, lv_color_hex(0xffffff), LV_ALIGN_CENTER);
+    main_label = lcd_display_text(display, NULL, "Connecting to internet...", &lv_font_montserrat_20, lv_color_hex(0xffffff), LV_ALIGN_CENTER);
 
     // Connecting to an AP
     esp_netif_t *sta_handle = wifi_init_sta();
@@ -208,17 +208,20 @@ void app_main(void)
 
     // Display info text telling the user how to reset credentials
     lv_obj_t *msg_erase = NULL;
-    msg_erase = lcd_display_text(display, NULL, "Press the button to erase\n wifi credentials", &lv_font_montserrat_16, lv_color_hex(0xffffff), LV_ALIGN_BOTTOM_MID);
+    msg_erase = lcd_display_text(display, msg_erase, "Press the button to erase wifi credentials", &lv_font_montserrat_16, lv_color_hex(0xffffff), LV_ALIGN_BOTTOM_MID);
     _lock_acquire(&lvgl_api_lock);
     lv_obj_set_style_pad_bottom(msg_erase, 16, LV_PART_MAIN);
     _lock_release(&lvgl_api_lock);
 
+    initialize_sntp();
     // Displaying WiFi info
     wifi_ap_record_t ap_info;
     esp_wifi_sta_get_ap_info(&ap_info);
 
     char *buffer = NULL;
     buffer = malloc(64 * sizeof(char));
+
+    xTaskCreate(display_time_task, "Clock task", 2048, display, 1, NULL);
 
     char ssid[33];
     memcpy(ssid, ap_info.ssid, sizeof(ssid));
@@ -231,5 +234,10 @@ void app_main(void)
         lv_obj_set_style_pad_top(main_label, 16, LV_PART_MAIN);
     else
         ESP_LOGE("MAIN", "label error");
+    _lock_release(&lvgl_api_lock);
+
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    _lock_acquire(&lvgl_api_lock);
+    lv_obj_delete(main_label);
     _lock_release(&lvgl_api_lock);
 }

@@ -15,7 +15,7 @@
 #define LCD_WIDTH 320
 #define LCD_HEIGHT 172
 #define LCD_SPI_HOST SPI2_HOST
-#define SPI_CLOCK_HZ (20 * 1000 * 1000)
+#define SPI_CLOCK_HZ (30 * 1000 * 1000)
 
 #define PIN_LCD_MOSI 23
 #define PIN_LCD_SCLK 18

@@ -12,6 +12,9 @@ void initialize_sntp(void)
     int retry = 0;
     const int retry_count = 10;
 
+    setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1); // Europe/Paris (été/hiver automatique)
+    tzset();
+
     while (timeinfo.tm_year < (2020 - 1900) && ++retry < retry_count)
     {
         ESP_LOGI("MAIN", "Waiting for system time to be set... (%d/%d)", retry, retry_count);
@@ -38,6 +41,7 @@ void display_time_task(void *pvParameter)
     char time_str[64];
     time_t now;
     struct tm timeinfo;
+    lv_obj_t *time_label = NULL;
 
     while (1)
     {
@@ -45,9 +49,7 @@ void display_time_task(void *pvParameter)
         localtime_r(&now, &timeinfo);
         strftime(time_str, sizeof(time_str), "%H:%M", &timeinfo); // Format HH:MM
 
-        // lcd_clear();
-        // lcd_print(time_str); // Fonction fictive pour afficher sur l'écran LCD
-        ESP_LOGI("CLOCK", "Time is : %s", time_str);
+        time_label = lcd_display_text(display, time_label, time_str, &lv_font_montserrat_20, lv_color_white(), LV_ALIGN_CENTER);
 
         vTaskDelay(1000 / portTICK_PERIOD_MS); // Mise à jour toutes les secondes
     }

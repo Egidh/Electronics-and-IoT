@@ -106,7 +106,11 @@ lv_display_t *lcd_init()
     xTaskCreate(lv_timer_task, "Timer task", 4096, NULL, 5, NULL);
 
     _lock_acquire(&lvgl_api_lock);
-    lv_obj_set_style_bg_color(lv_screen_active(), lv_color_hex(0x000000), LV_PART_MAIN);
+    lv_obj_t *scr = lv_screen_active();
+    lv_obj_set_style_bg_color(scr, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_radius(scr, 20, LV_PART_MAIN);
+    lv_obj_set_style_border_color(scr, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_border_width(scr, 3, LV_PART_MAIN);
     _lock_release(&lvgl_api_lock);
 
     ESP_LOGI(TAG_LCD, "Succesfully initialized LCD display");
@@ -129,8 +133,11 @@ lv_obj_t *lcd_display_text(lv_display_t *self, lv_obj_t *label, const char *text
         label = lv_label_create(screen);
 
     lv_obj_set_align(label, align);
+    lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+
     lv_label_set_long_mode(label, LV_LABEL_LONG_MODE_WRAP);
-    lv_obj_set_width(label, LCD_WIDTH - 20);
+    lv_obj_set_width(label, LCD_WIDTH - 40);
+
     lv_label_set_text_static(label, text);
     lv_obj_set_style_text_color(label, color, LV_PART_MAIN);
     lv_obj_set_style_text_font(label, font, LV_PART_MAIN);
