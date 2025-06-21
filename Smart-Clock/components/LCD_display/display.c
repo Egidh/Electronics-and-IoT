@@ -5,6 +5,8 @@ esp_lcd_panel_handle_t panel_handle;
 
 static _lock_t lvgl_api_lock;
 
+lv_theme_t *th = NULL;
+
 esp_err_t st7789_init()
 {
     spi_bus_config_t bus_config = {
@@ -103,12 +105,12 @@ lv_display_t *lcd_init()
     _lock_init(&lvgl_api_lock);
 
     lv_tick_set_cb(xTaskGetTickCount);
-    xTaskCreate(lv_timer_task, "Timer task", 4096, NULL, 5, NULL);
+    xTaskCreate(lv_timer_task, "Timer task", 8192, NULL, 5, NULL);
 
     _lock_acquire(&lvgl_api_lock);
     lv_obj_t *scr = lv_screen_active();
     lv_obj_set_style_bg_color(scr, lv_color_black(), LV_PART_MAIN);
-    lv_obj_set_style_radius(scr, 20, LV_PART_MAIN);
+    lv_obj_set_style_radius(scr, 25, LV_PART_MAIN);
     lv_obj_set_style_border_color(scr, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_border_width(scr, 3, LV_PART_MAIN);
     _lock_release(&lvgl_api_lock);
@@ -118,33 +120,39 @@ lv_display_t *lcd_init()
     return display;
 }
 
-lv_obj_t *lcd_display_text(lv_display_t *self, lv_obj_t *label, const char *text, const lv_font_t *font, lv_color_t color, lv_align_t align)
+lv_obj_t *lcd_display_text(lv_obj_t *label, const char *text, const lv_style_t *style)
 {
-    if (!self)
-    {
-        ESP_LOGW(TAG_LCD, "Error displaying text: display is NULL");
-        return NULL;
-    }
-
-    _lock_acquire(&lvgl_api_lock);
-    lv_obj_t *screen = lv_display_get_screen_active(self);
-
+   _lock_acquire(&lvgl_api_lock);
     if (!label)
-        label = lv_label_create(screen);
+        label = lv_label_create(lv_screen_active());
 
-    lv_obj_set_align(label, align);
-    lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_add_style(label, style, LV_PART_MAIN);
 
     lv_label_set_long_mode(label, LV_LABEL_LONG_MODE_WRAP);
-    lv_obj_set_width(label, LCD_WIDTH - 40);
+
+    int32_t width = lv_text_get_width(text, strlen(text), lv_obj_get_style_text_font(label, LV_PART_MAIN), LV_STYLE_TEXT_LETTER_SPACE);
+    if (width > LCD_WIDTH - 40)
+        lv_obj_set_width(label, LCD_WIDTH - 40);
 
     lv_label_set_text_static(label, text);
-    lv_obj_set_style_text_color(label, color, LV_PART_MAIN);
-    lv_obj_set_style_text_font(label, font, LV_PART_MAIN);
-
     _lock_release(&lvgl_api_lock);
 
     return label;
+}
+
+void lcd_display_notification(const char *text)
+{
+    lv_obj_t *msg = lv_msgbox_create(lv_screen_active());
+
+    _lock_acquire(&lvgl_api_lock);
+    lv_msgbox_add_text(msg, text);
+    _lock_release(&lvgl_api_lock);
+
+    vTaskDelay(1000/portTICK_PERIOD_MS);
+
+    _lock_acquire(&lvgl_api_lock);
+    lv_msgbox_close(msg);
+    _lock_release(&lvgl_api_lock);
 }
 
 _lock_t get_lvgl_api_lock()
