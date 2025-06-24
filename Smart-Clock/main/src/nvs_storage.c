@@ -75,7 +75,7 @@ bool nvs_Storage_GetWifiCreds(char *ssid, char *passwd)
     return true;
 }
 
-esp_err_t nvs_Storage_SetWifiCreds(char *ssid, char *passwd)
+esp_err_t nvs_Storage_SetWifiCreds(const char *ssid, const char *passwd)
 {
     if (strlen(ssid) >= 32)
     {

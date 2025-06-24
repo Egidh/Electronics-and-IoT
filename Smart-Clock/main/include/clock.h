@@ -3,8 +3,7 @@
 #include "esp_sntp.h"
 #include "esp_log.h"
 
-#include "display.h"
-#include "style.h"
+#include "lvgl_UI.h"
 
 /// @brief Initialize time using sntp server
 void initialize_sntp();

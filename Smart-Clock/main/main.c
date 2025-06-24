@@ -7,15 +7,13 @@
 #include "wifi_http_server.h"
 #include "wifi_captive_portal.h"
 
-#include "display.h"
 #include "clock.h"
-#include "style.h"
+#include "lvgl_UI.h"
 
 #define CREDENTIALS_SAVED_BIT BIT0
 #define CREDENTIALS_FAILED_BIT BIT1
 
 EventGroupHandle_t wifi_credentials_event;
-_lock_t lvgl_api_lock = NULL;
 
 esp_err_t save_credentials_from_http(const char *ssid, const char *password)
 {
@@ -63,21 +61,20 @@ static void IRAM_ATTR button_isr_handler(void *arg)
 // Tâche pour effacer les credentials
 void erase_wifi_task(void *arg)
 {
-    lv_display_t *display = (lv_display_t *)arg;
     uint8_t signal;
     while (1)
     {
         // Attendre un signal dans la file
         if (xQueueReceive(erase_wifi_queue, &signal, portMAX_DELAY))
         {
-            lcd_display_notification("Erasing WiFi credentials...");
+            ui_send_notification("Erasing WiFi credentials...", 100);
 
             esp_err_t err = nvs_Storage_EraseWifiCreds();
             if (err == ESP_OK)
-                lcd_display_notification("Credentials successfully erased");
+                ui_send_notification("Credentials successfully erased", 1000);
 
             else
-                lcd_display_notification("An error happened");
+                ui_send_notification("An error happened", 1000);
 
             vTaskDelay(2000 / portTICK_PERIOD_MS);
         }
@@ -102,15 +99,15 @@ void app_main(void)
     wifi_credentials_event = xEventGroupCreate();
 
     // Setting up the display
-    lv_display_t *display = lcd_init();
+    ui_init();
     lv_obj_t *main_label = NULL;
 
-    lvgl_api_lock = get_lvgl_api_lock();
+    _lock_t lvgl_api_lock = get_lvgl_api_lock();
 
     lv_style_t *big_style = get_big_label_default_style(LV_ALIGN_CENTER, LV_TEXT_ALIGN_CENTER);
     lv_style_t *mid_style = get_mid_label_default_style(LV_ALIGN_BOTTOM_MID, LV_TEXT_ALIGN_CENTER);
 
-    lcd_display_notification("Connecting to the internet");
+    ui_send_notification("Connecting to internet...", 3000);
 
     // Connecting to an AP
     esp_netif_t *sta_handle = wifi_init_sta();
@@ -120,7 +117,7 @@ void app_main(void)
         httpServer_start(save_credentials_from_http);
         DNSserver_StartSocket();
 
-        main_label = lcd_display_text(main_label, "Please connect to the WiFi", big_style);
+        main_label = ui_display_text(main_label, "Please connect to the WiFi", big_style);
 
         _lock_acquire(&lvgl_api_lock);
         lv_obj_t *under_label = NULL;
@@ -128,7 +125,7 @@ void app_main(void)
         lv_obj_set_style_pad_top(under_label, 35, LV_PART_MAIN);
         _lock_release(&lvgl_api_lock);
 
-        under_label = lcd_display_text(under_label, "SSID : ConnectedClock\nPassword : 12345678", mid_style);
+        under_label = ui_display_text(under_label, "SSID : ConnectedClock\nPassword : 12345678", mid_style);
 
         while (true)
         {
@@ -145,7 +142,7 @@ void app_main(void)
                 lv_obj_delete(under_label);
                 _lock_release(&lvgl_api_lock);
 
-                lcd_display_text(main_label, "The smart clock will reboot in 3 seconds...", big_style);
+                ui_display_text(main_label,"The smart clock will reboot in 3 seconds...", big_style);
 
                 vTaskDelay(3000 / portTICK_PERIOD_MS);
                 esp_restart();
@@ -157,23 +154,16 @@ void app_main(void)
 
     // Setting up the clock
     initialize_sntp();
-    xTaskCreate(display_time_task, "Clock task", 2048, display, 1, NULL);
+    xTaskCreate(display_time_task, "Clock task", 2048, NULL, 1, NULL);
 
     // Displaying WiFi info
     wifi_ap_record_t ap_info;
     esp_wifi_sta_get_ap_info(&ap_info);
 
-    char *ssid = malloc(33 * sizeof(char));
+    char *ssid = malloc(64 * sizeof(char));
     strcpy(ssid, (char *)ap_info.ssid);
-
-    lv_obj_t *wifi_label = NULL;
-    lv_style_t *wifi_style = get_mid_label_default_style(LV_ALIGN_TOP_RIGHT, LV_TEXT_ALIGN_RIGHT);
-    wifi_label = lcd_display_text(wifi_label, ssid, wifi_style);
-
-    _lock_acquire(&lvgl_api_lock);
-    lv_obj_set_style_pad_right(wifi_label, 16, LV_PART_MAIN);
-    lv_obj_set_style_pad_top(wifi_label, 16, LV_PART_MAIN);
-    _lock_release(&lvgl_api_lock);
+    
+    lv_obj_t *wifi_icon_label = ui_create_wifi_object(ssid, LV_ALIGN_TOP_RIGHT, -16, 16);
 
     // Setting up the push button and its interrupt
     // Timer to debounce the push button
@@ -202,13 +192,13 @@ void app_main(void)
     gpio_install_isr_service(0);
     gpio_isr_handler_add(GPIO_NUM_14, button_isr_handler, NULL);
 
-    xTaskCreate(erase_wifi_task, "Erase Creds Task", 2048, display, 8, NULL);
+    xTaskCreate(erase_wifi_task, "Erase Creds Task", 2048, NULL, 8, NULL);
 
     // Display info text telling the user how to reset credentials
     lv_obj_t *msg_erase = NULL;
-    msg_erase = lcd_display_text(msg_erase, "Press the button to erase wifi credentials", mid_style);
+    msg_erase = ui_display_text(msg_erase, "Press the button to erase wifi credentials", mid_style);
 
     _lock_acquire(&lvgl_api_lock);
-    lv_obj_set_style_pad_bottom(msg_erase, 16, LV_PART_MAIN);
+    lv_obj_set_style_pad_bottom(msg_erase, 8, LV_PART_MAIN);
     _lock_release(&lvgl_api_lock);
 }
