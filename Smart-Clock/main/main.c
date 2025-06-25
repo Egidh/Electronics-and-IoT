@@ -67,14 +67,12 @@ void erase_wifi_task(void *arg)
         // Attendre un signal dans la file
         if (xQueueReceive(erase_wifi_queue, &signal, portMAX_DELAY))
         {
-            ui_send_notification("Erasing WiFi credentials...", 100);
-
             esp_err_t err = nvs_Storage_EraseWifiCreds();
             if (err == ESP_OK)
-                ui_send_notification("Credentials successfully erased", 1000);
+                ui_send_notification("Credentials successfully erased", 1500);
 
             else
-                ui_send_notification("An error happened", 1000);
+                ui_send_notification("An error happened", 1500);
 
             vTaskDelay(2000 / portTICK_PERIOD_MS);
         }

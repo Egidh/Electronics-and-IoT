@@ -42,6 +42,10 @@ lv_style_t *get_mid_label_default_style(lv_align_t align, lv_text_align_t text_a
 /// @return The style
 lv_style_t *get_little_label_default_style(lv_align_t align, lv_text_align_t text_align);
 
+/// @brief Get the default style for notifications
+/// @return The style
+lv_style_t *get_notification_default_style();
+
 /*****************************************************************************
  *                                   UI                                      *
  *****************************************************************************/

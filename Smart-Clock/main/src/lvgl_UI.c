@@ -12,6 +12,8 @@ _lock_t get_lvgl_api_lock()
  *                                 Styles                                    *
  *****************************************************************************/
 
+static lv_style_t *notif_style = NULL;
+
 lv_style_t *get_big_label_default_style(lv_align_t align, lv_text_align_t text_align)
 {
     lv_style_t *self = malloc(sizeof(lv_style_t));
@@ -51,7 +53,6 @@ lv_style_t *get_mid_label_default_style(lv_align_t align, lv_text_align_t text_a
 lv_style_t *get_little_label_default_style(lv_align_t align, lv_text_align_t text_align)
 {
     lv_style_t *self = malloc(sizeof(lv_style_t));
-    _lock_t lvgl_api_lock = get_lvgl_api_lock();
 
     _lock_acquire(&lvgl_api_lock);
     lv_style_init(self);
@@ -64,6 +65,31 @@ lv_style_t *get_little_label_default_style(lv_align_t align, lv_text_align_t tex
     _lock_release(&lvgl_api_lock);
 
     return self;
+}
+
+static void init_notification_default_style()
+{
+    notif_style = malloc(sizeof(lv_style_t));
+
+    _lock_acquire(&lvgl_api_lock);
+    lv_style_init(notif_style);
+
+    lv_style_set_bg_color(notif_style, lv_color_hex(0xffffff));
+    lv_style_set_bg_opa(notif_style, LV_OPA_100);
+
+    lv_style_set_text_color(notif_style, lv_color_hex(0x000000));
+    lv_style_set_text_font(notif_style, &lv_font_montserrat_16);
+    lv_style_set_text_align(notif_style, LV_TEXT_ALIGN_CENTER);
+
+    lv_style_set_radius(notif_style, 25);
+    lv_style_set_pad_all(notif_style, 8);
+    lv_style_set_align(notif_style, LV_ALIGN_TOP_MID);
+    _lock_release(&lvgl_api_lock);
+}
+
+lv_style_t *get_notification_default_style()
+{
+    return notif_style;
 }
 
 /*****************************************************************************
@@ -88,7 +114,6 @@ static void ui_init_notif_anim()
 {
     _lock_acquire(&lvgl_api_lock);
     lv_anim_init(&notif_anim);
-    lv_anim_set_values(&notif_anim, -40, UI_BORDER_SIZE);
     lv_anim_set_path_cb(&notif_anim, lv_anim_path_ease_in_out);
     lv_anim_set_duration(&notif_anim, 500);
     lv_anim_set_reverse_duration(&notif_anim, 500);
@@ -175,6 +200,7 @@ lv_display_t *ui_init()
 
     // Animations initialization
     ui_init_notif_anim();
+    init_notification_default_style();
 
     return display;
 }
@@ -244,27 +270,21 @@ lv_obj_t *ui_display_text(lv_obj_t *label, const char *text, const lv_style_t *s
 void ui_send_notification(const char *text, uint32_t delay_ms)
 {
     _lock_acquire(&lvgl_api_lock);
-    lv_obj_t *self = lv_label_create(lv_screen_active());
-    
-    lv_obj_set_style_bg_color(self, lv_color_hex(0xffffff), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(self, LV_OPA_100, LV_PART_MAIN);
-    
-    lv_label_set_text(self, text); 
-    lv_label_set_long_mode(self, LV_LABEL_LONG_MODE_WRAP);
-    lv_obj_set_style_text_color(self, lv_color_hex(0x000000), LV_PART_MAIN);
-    lv_obj_set_style_text_font(self, &lv_font_montserrat_16, LV_PART_MAIN);
-    lv_obj_set_style_text_align(self, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
 
-    lv_obj_set_style_radius(self, 25, LV_PART_MAIN);
-    lv_obj_set_style_pad_all(self, 8, LV_PART_MAIN);
+    lv_obj_t *self = lv_label_create(lv_screen_active());
+    lv_label_set_text(self, text);
+    lv_label_set_long_mode(self, LV_LABEL_LONG_MODE_WRAP);
+
+    lv_obj_add_style(self, notif_style, LV_PART_MAIN);
     lv_obj_set_width(self, LCD_WIDTH - 16);
 
-    lv_obj_set_align(self, LV_ALIGN_TOP_MID);
-
     lv_anim_t anim = notif_anim;
+    lv_obj_update_layout(self);
+    lv_anim_set_values(&anim, -lv_obj_get_height(self), UI_BORDER_SIZE);
     lv_anim_set_var(&anim, self);
     lv_anim_set_reverse_delay(&anim, delay_ms);
 
     lv_anim_start(&anim);
+
     _lock_release(&lvgl_api_lock);
 }
