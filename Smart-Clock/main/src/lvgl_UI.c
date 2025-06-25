@@ -14,6 +14,10 @@ _lock_t get_lvgl_api_lock()
 
 static lv_style_t *notif_style = NULL;
 
+static lv_style_t *big_label_style = NULL;
+static lv_style_t *mid_label_style = NULL;
+static lv_style_t *little_label_style = NULL;
+
 lv_style_t *get_big_label_default_style(lv_align_t align, lv_text_align_t text_align)
 {
     lv_style_t *self = malloc(sizeof(lv_style_t));
@@ -84,6 +88,33 @@ static void init_notification_default_style()
     lv_style_set_radius(notif_style, 25);
     lv_style_set_pad_all(notif_style, 8);
     lv_style_set_align(notif_style, LV_ALIGN_TOP_MID);
+    _lock_release(&lvgl_api_lock);
+}
+
+static void init_labels_default_styles()
+{
+    little_label_style = malloc(sizeof(lv_style_t));
+
+    _lock_acquire(&lvgl_api_lock);
+
+    // Little label
+    little_label_style = malloc(sizeof(lv_style_t));
+    lv_style_init(little_label_style);
+    lv_style_set_text_color(little_label_style, lv_color_hex(0xffffff));
+    lv_style_set_text_font(little_label_style, &lv_font_montserrat_14);
+
+    // Mid label
+    mid_label_style = malloc(sizeof(lv_style_t));
+    lv_style_init(mid_label_style);
+    lv_style_set_text_color(mid_label_style, lv_color_hex(0xffffff));
+    lv_style_set_text_font(mid_label_style, &lv_font_montserrat_16);
+
+    // Big label
+    big_label_style = malloc(sizeof(lv_style_t));
+    lv_style_init(big_label_style);
+    lv_style_set_text_color(big_label_style, lv_color_hex(0xffffff));
+    lv_style_set_text_font(big_label_style, &lv_font_montserrat_20);
+
     _lock_release(&lvgl_api_lock);
 }
 
@@ -198,9 +229,12 @@ lv_display_t *ui_init()
     lv_obj_set_style_border_width(scr, UI_BORDER_SIZE, LV_PART_MAIN);
     _lock_release(&lvgl_api_lock);
 
+    // Styles initialization
+    init_labels_default_styles();
+    init_notification_default_style();
+
     // Animations initialization
     ui_init_notif_anim();
-    init_notification_default_style();
 
     return display;
 }
@@ -211,7 +245,7 @@ lv_obj_t *ui_create_wifi_object(const char *ssid, lv_align_t align, int padding_
 
     // Creating the container for the WiFi info
     _lock_acquire(&lvgl_api_lock);
-    lv_obj_t *wifi_container = lv_obj_create(lv_screen_active());
+    lv_obj_t *wifi_container = lv_obj_create(lv_layer_top());
     lv_obj_set_size(wifi_container, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
     lv_obj_align(wifi_container, align, 0, 0);
     lv_obj_set_style_bg_opa(wifi_container, LV_OPA_TRANSP, 0);
@@ -249,6 +283,9 @@ lv_obj_t *ui_create_wifi_object(const char *ssid, lv_align_t align, int padding_
 
 lv_obj_t *ui_display_text(lv_obj_t *label, const char *text, const lv_style_t *style)
 {
+    if (!text)
+        return NULL;
+
     _lock_acquire(&lvgl_api_lock);
     if (!label)
     {
@@ -269,9 +306,12 @@ lv_obj_t *ui_display_text(lv_obj_t *label, const char *text, const lv_style_t *s
 
 void ui_send_notification(const char *text, uint32_t delay_ms)
 {
+    if (!text)
+        return;
+
     _lock_acquire(&lvgl_api_lock);
 
-    lv_obj_t *self = lv_label_create(lv_screen_active());
+    lv_obj_t *self = lv_label_create(lv_layer_top());
     lv_label_set_text(self, text);
     lv_label_set_long_mode(self, LV_LABEL_LONG_MODE_WRAP);
 
@@ -280,11 +320,68 @@ void ui_send_notification(const char *text, uint32_t delay_ms)
 
     lv_anim_t anim = notif_anim;
     lv_obj_update_layout(self);
-    lv_anim_set_values(&anim, -lv_obj_get_height(self), UI_BORDER_SIZE);
+    lv_anim_set_values(&anim, -lv_obj_get_height(self), 2 * UI_BORDER_SIZE);
     lv_anim_set_var(&anim, self);
     lv_anim_set_reverse_delay(&anim, delay_ms);
 
     lv_anim_start(&anim);
 
     _lock_release(&lvgl_api_lock);
+}
+
+lv_obj_t *ui_message_box_create(const char *title, const char *msg)
+{
+    if (!title || !msg)
+        return NULL;
+
+    lv_obj_t *self = NULL;
+
+    _lock_acquire(&lvgl_api_lock);
+    self = lv_obj_create(lv_screen_active());
+
+    lv_obj_set_size(self, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_align(self, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_set_style_bg_opa(self, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_opa(self, LV_OPA_100, 0);
+    lv_obj_set_style_border_color(self, lv_color_hex3(0xfff), LV_PART_MAIN);
+    lv_obj_set_style_pad_all(self, 0, LV_PART_MAIN);
+
+    lv_obj_set_layout(self, LV_LAYOUT_FLEX);
+    lv_obj_set_flex_flow(self, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_gap(self, 6, 0);
+
+    lv_obj_t *header = lv_label_create(self);
+    lv_obj_t *content = lv_label_create(self);
+
+    lv_obj_add_style(header, mid_label_style, LV_PART_MAIN);
+    lv_obj_add_style(content, mid_label_style, LV_PART_MAIN);
+
+    lv_obj_set_style_bg_color(header, lv_color_hex3(0xfff), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(header, LV_OPA_100, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(header, 8, LV_PART_MAIN);
+    lv_obj_set_style_text_color(header, lv_color_hex3(0x000), LV_PART_MAIN);
+
+    lv_obj_set_style_pad_left(content, 8, LV_PART_MAIN);
+    lv_obj_set_style_pad_bottom(content, 6, LV_PART_MAIN);
+
+    lv_label_set_text(header, title);
+    lv_label_set_text(content, msg);
+
+    lv_label_set_long_mode(content, LV_LABEL_LONG_MODE_WRAP);
+
+    _lock_release(&lvgl_api_lock);
+
+    return self;
+}
+
+void ui_delete_obj(lv_obj_t *self)
+{
+    if (!self)
+        return;
+
+    _lock_acquire(&lvgl_api_lock);
+    lv_obj_delete(self);
+    _lock_release(&lvgl_api_lock);
+
+    self = NULL;
 }

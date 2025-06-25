@@ -78,3 +78,13 @@ void ui_send_notification(const char *text, uint32_t delay_ms);
 
 /// @brief Return the lvgl lock for mutex. Be sure to call ui_init beforehand
 _lock_t get_lvgl_api_lock();
+
+/// @brief Create a message box at the center of the display
+/// @param title The title of the box
+/// @param msg The content
+/// @return The box created for further modifications
+lv_obj_t *ui_message_box_create(const char *title, const char *msg);
+
+/// @brief Delete an UI object and free its memory
+/// @param self The object to be deleted
+void ui_delete_obj(lv_obj_t *self);

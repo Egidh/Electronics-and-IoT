@@ -115,15 +115,17 @@ void app_main(void)
         httpServer_start(save_credentials_from_http);
         DNSserver_StartSocket();
 
-        main_label = ui_display_text(main_label, "Please connect to the WiFi", big_style);
+        lv_obj_t *msgbox = ui_message_box_create("Please connect to the WiFi", "SSID : ConnectedClock\nPassword : 12345678");
 
-        _lock_acquire(&lvgl_api_lock);
-        lv_obj_t *under_label = NULL;
-        under_label = lv_label_create(main_label);
-        lv_obj_set_style_pad_top(under_label, 35, LV_PART_MAIN);
-        _lock_release(&lvgl_api_lock);
+        // main_label = ui_display_text(main_label, "Please connect to the WiFi", big_style);
 
-        under_label = ui_display_text(under_label, "SSID : ConnectedClock\nPassword : 12345678", mid_style);
+        // _lock_acquire(&lvgl_api_lock);
+        // lv_obj_t *under_label = NULL;
+        // under_label = lv_label_create(main_label);
+        // lv_obj_set_style_pad_top(under_label, 35, LV_PART_MAIN);
+        // _lock_release(&lvgl_api_lock);
+
+        // under_label = ui_display_text(under_label, "SSID : ConnectedClock\nPassword : 12345678", mid_style);
 
         while (true)
         {
@@ -136,11 +138,9 @@ void app_main(void)
 
             if (bits & CREDENTIALS_SAVED_BIT)
             {
-                _lock_acquire(&lvgl_api_lock);
-                lv_obj_delete(under_label);
-                _lock_release(&lvgl_api_lock);
+                ui_delete_obj(msgbox);
 
-                ui_display_text(main_label,"The smart clock will reboot in 3 seconds...", big_style);
+                main_label = ui_display_text(main_label, "The smart clock will reboot in 3 seconds...", big_style);
 
                 vTaskDelay(3000 / portTICK_PERIOD_MS);
                 esp_restart();
@@ -160,8 +160,8 @@ void app_main(void)
 
     char *ssid = malloc(64 * sizeof(char));
     strcpy(ssid, (char *)ap_info.ssid);
-    
-    lv_obj_t *wifi_icon_label = ui_create_wifi_object(ssid, LV_ALIGN_TOP_RIGHT, -16, 16);
+
+    lv_obj_t *ui_wifi_info = ui_create_wifi_object(ssid, LV_ALIGN_TOP_RIGHT, -16, 16);
 
     // Setting up the push button and its interrupt
     // Timer to debounce the push button
