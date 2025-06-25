@@ -26,3 +26,8 @@
 esp_netif_t *wifi_init_sta();
 
 esp_netif_t *wifi_init_ap();
+
+/// @brief Return the ssid of the current AP
+/// @param ssid A string to pass the ssid (usually the ssid is 34 bytes long)
+/// @param size The size of the ssid buffer 
+void wifi_get_SSID(char *ssid, size_t size);

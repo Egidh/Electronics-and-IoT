@@ -150,10 +150,10 @@ esp_netif_t *wifi_init_ap()
     return ap_handle;
 }
 
-static void wifi_stopAP(esp_netif_t *ap_handle)
+void wifi_get_SSID(char *ssid, size_t size)
 {
-    esp_netif_destroy(ap_handle);
+    wifi_ap_record_t ap_info;
+    esp_wifi_sta_get_ap_info(&ap_info);
 
-    ESP_ERROR_CHECK(esp_wifi_stop());
-    ESP_ERROR_CHECK(esp_wifi_deinit());
+    strlcpy(ssid, (char *)ap_info.ssid, size);
 }

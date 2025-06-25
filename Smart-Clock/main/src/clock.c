@@ -29,37 +29,25 @@ void initialize_sntp(void)
     }
 }
 
-void display_time_task(void *pvParameter)
+void myclock_get_date(char *date_str, size_t size)
 {
-    char time_str[16];
-    char date_str[64];
-
     time_t now;
     struct tm timeinfo;
 
-    lv_obj_t *time_label = NULL;
-    lv_obj_t *date_label = NULL;
+    time(&now);
+    localtime_r(&now, &timeinfo);
 
-    _lock_t lvgl_api_lock = get_lvgl_api_lock();
-
-    lv_style_t *time_style = get_big_label_default_style(LV_ALIGN_CENTER, LV_TEXT_ALIGN_CENTER);
-    lv_style_t *date_style = get_mid_label_default_style(LV_ALIGN_TOP_LEFT, LV_TEXT_ALIGN_LEFT);
-
-    _lock_acquire(&lvgl_api_lock);
-    lv_style_set_pad_left(date_style, 16);
-    lv_style_set_pad_top(date_style, 16);
-    _lock_release(&lvgl_api_lock);
-
-    while (1)
-    {
-        time(&now);
-        localtime_r(&now, &timeinfo);
-        strftime(time_str, sizeof(time_str), "%H:%M", &timeinfo); // HH:MM format
-        strftime(date_str, sizeof(date_str), "%a. %d %b", &timeinfo);
-
-        time_label = ui_display_text(time_label, time_str, time_style);
-        date_label = ui_display_text(date_label, date_str, date_style);
-
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
+    strftime(date_str, size, "%a. %d %b", &timeinfo);
 }
+
+void myclock_get_time(char *time_str, size_t size)
+{
+    time_t now;
+    struct tm timeinfo;
+
+    time(&now);
+    localtime_r(&now, &timeinfo);
+
+    strftime(time_str, size, "%H:%M", &timeinfo);
+}
+
