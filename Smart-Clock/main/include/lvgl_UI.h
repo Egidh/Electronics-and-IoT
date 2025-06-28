@@ -107,4 +107,4 @@ void ui_delete_obj(lv_obj_t *self);
 
 /// @brief Create an UI object : the clock
 /// @param align Where to put the clock
-// void ui_clock_create(lv_align_t align);
+void ui_clock_create(lv_align_t align);

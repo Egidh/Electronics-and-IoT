@@ -100,8 +100,6 @@ void app_main(void)
     ui_init();
     lv_obj_t *main_label = NULL;
 
-    _lock_t lvgl_api_lock = get_lvgl_api_lock();
-
     lv_style_t *big_style = get_big_label_default_style(LV_ALIGN_CENTER, LV_TEXT_ALIGN_CENTER);
     lv_style_t *mid_style = get_mid_label_default_style(LV_ALIGN_BOTTOM_MID, LV_TEXT_ALIGN_CENTER);
 
@@ -142,7 +140,7 @@ void app_main(void)
 
     // Setting up the clock
     initialize_sntp();
-    // ui_clock_create(LV_ALIGN_CENTER);
+    ui_clock_create(LV_ALIGN_CENTER);
 
     // Setting up the top bar
     ui_top_bar_t *top_bar = ui_top_bar_create();

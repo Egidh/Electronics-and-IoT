@@ -158,6 +158,12 @@ static void ui_init_notif_anim()
  *****************************************************************************/
 esp_lcd_panel_handle_t panel_handle;
 
+typedef enum ACTIVE_SCREEN
+{
+    MAIN_MENU,
+    SETTINGS_MENU
+} ACTIVE_SCREEN;
+
 void lv_flush_cb(lv_display_t *display, const lv_area_t *area, uint8_t *px_map)
 {
     int32_t x_start = area->x1;
@@ -230,6 +236,7 @@ lv_display_t *ui_init()
     lv_obj_set_style_radius(scr, 25, LV_PART_MAIN);
     lv_obj_set_style_border_color(scr, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_border_width(scr, UI_BORDER_SIZE, LV_PART_MAIN);
+    lv_obj_set_user_data(scr, (void *)(uintptr_t)MAIN_MENU);
     _lock_release(&lvgl_api_lock);
 
     // Styles initialization
@@ -261,6 +268,36 @@ static void update_time_date_task(void *pvParameter)
     }
 }
 
+static bool clock_is_init = false;
+
+/// @brief Init the subjects for the time and date labels.
+///
+/// If a label is NULL the clock will be initialized without binding anything to this label
+/// @param time_label The label bind by the time subject
+/// @param date_label The label bind by the date subject
+static void init_clock_subjects(lv_obj_t *time_label, lv_obj_t *date_label)
+{
+    char *date_buffer = malloc(32 * sizeof(char));
+    lv_subject_init_string(&date_subject, date_buffer, NULL, 32, "date");
+
+    if (date_label)
+    {
+        lv_label_bind_text(date_label, &date_subject, NULL);
+        lv_obj_set_style_text_font(date_label, &lv_font_montserrat_16, 0);
+    }
+
+    char *time_buffer = malloc(16 * sizeof(char));
+    lv_subject_init_string(&time_subject, time_buffer, NULL, 16, "time");
+    if (time_label)
+    {
+        lv_label_bind_text(time_label, &time_subject, NULL);
+        lv_obj_set_style_text_font(time_label, &lv_font_montserrat_16, 0);
+    }
+
+    xTaskCreate(update_time_date_task, "Update date time", 2048, NULL, 1, NULL);
+    clock_is_init = true;
+}
+
 ui_top_bar_t *ui_top_bar_create()
 {
     ui_top_bar_t *self = malloc(sizeof(ui_top_bar_t));
@@ -277,7 +314,7 @@ ui_top_bar_t *ui_top_bar_create()
     lv_obj_align(top_bar_content, LV_ALIGN_TOP_MID, 0, 0);
 
     lv_obj_set_style_bg_opa(top_bar_content, LV_OPA_TRANSP, 0);
-    lv_obj_set_style_border_opa(top_bar_content, LV_OPA_100, 0);
+    lv_obj_set_style_border_opa(top_bar_content, LV_OPA_TRANSP, 0);
     lv_obj_set_style_text_color(top_bar_content, lv_color_hex3(0xfff), LV_PART_MAIN);
 
     lv_obj_set_layout(top_bar_content, LV_LAYOUT_FLEX);
@@ -285,23 +322,23 @@ ui_top_bar_t *ui_top_bar_create()
     lv_obj_set_flex_align(top_bar_content, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
     // Date/Time section
-    lv_obj_t *date_label = lv_label_create(top_bar_content);
-    self->date = date_label;
+    self->date = lv_label_create(top_bar_content);
+    self->time = lv_label_create(top_bar_content);
 
-    char *date_buffer = malloc(64 * sizeof(char));
-    lv_subject_init_string(&date_subject, date_buffer, NULL, 64, "date");
-    lv_label_bind_text(date_label, &date_subject, NULL);
-    lv_obj_set_style_text_font(date_label, &lv_font_montserrat_16, 0);
+    if ((ACTIVE_SCREEN)lv_obj_get_user_data(lv_screen_active()) == MAIN_MENU)
+        lv_obj_set_flag(self->time, LV_OBJ_FLAG_HIDDEN, true);
+    else
+        lv_obj_set_flag(self->date, LV_OBJ_FLAG_HIDDEN, true);
 
-    lv_obj_t *time_label = lv_label_create(top_bar_content);
-    self->time = time_label;
+    if (!clock_is_init)
+        init_clock_subjects(self->time, self->date);
+    else
+    {
+        lv_label_bind_text(self->date, &date_subject, NULL);
+        lv_label_bind_text(self->time, &time_subject, NULL);
+    }
 
-    char *time_buffer = malloc(16 * sizeof(char));
-    lv_subject_init_string(&time_subject, time_buffer, NULL, 16, "time");
-    lv_label_bind_text(time_label, &time_subject, NULL);
-    lv_obj_set_style_text_font(time_label, &lv_font_montserrat_16, 0);
-
-    xTaskCreate(update_time_date_task, "Update date time", 2048, NULL, 1, NULL);
+    clock_is_init = true;
 
     // WiFi section
     lv_obj_t *wifi_container = lv_obj_create(top_bar_content);
@@ -442,15 +479,22 @@ void ui_delete_obj(lv_obj_t *self)
     self = NULL;
 }
 
-// void ui_clock_create(lv_align_t align)
-// {
-//     _lock_acquire(&lvgl_api_lock);
+void ui_clock_create(lv_align_t align)
+{
+    _lock_acquire(&lvgl_api_lock);
 
-//     lv_obj_t *self = lv_label_create(lv_screen_active());
-//     lv_obj_add_style(self, big_label_style, 0);
-//     lv_obj_set_style_align(self, align, 0);
+    lv_obj_t *self = lv_label_create(lv_screen_active());
+    lv_obj_add_style(self, big_label_style, 0);
+    lv_obj_set_style_align(self, align, 0);
 
-//     lv_label_bind_text(self, &time_subject, NULL);
+    if (!clock_is_init)
+    {
+        init_clock_subjects(self, NULL);
+        clock_is_init = true;
+    }
 
-//     _lock_release(&lvgl_api_lock);
-// }
+    lv_label_bind_text(self, &time_subject, NULL);
+    lv_obj_set_style_text_font(self, &lv_font_montserrat_30, 0);
+
+    _lock_release(&lvgl_api_lock);
+}
