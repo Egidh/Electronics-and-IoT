@@ -158,6 +158,12 @@ static void ui_init_notif_anim()
  *****************************************************************************/
 esp_lcd_panel_handle_t panel_handle;
 
+typedef enum ACTIVE_SCREEN
+{
+    MAIN_MENU,
+    SETTINGS_MENU
+} ACTIVE_SCREEN;
+
 void lv_flush_cb(lv_display_t *display, const lv_area_t *area, uint8_t *px_map)
 {
     int32_t x_start = area->x1;
@@ -189,6 +195,9 @@ uint32_t tick_cb()
 {
     return esp_timer_get_time() / 1000;
 }
+
+lv_subject_t date_subject;
+lv_subject_t time_subject;
 
 lv_display_t *ui_init()
 {
@@ -227,6 +236,7 @@ lv_display_t *ui_init()
     lv_obj_set_style_radius(scr, 25, LV_PART_MAIN);
     lv_obj_set_style_border_color(scr, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_border_width(scr, UI_BORDER_SIZE, LV_PART_MAIN);
+    lv_obj_set_user_data(scr, (void *)(uintptr_t)MAIN_MENU);
     _lock_release(&lvgl_api_lock);
 
     // Styles initialization
@@ -239,46 +249,129 @@ lv_display_t *ui_init()
     return display;
 }
 
-lv_obj_t *ui_create_wifi_object(const char *ssid, lv_align_t align, int padding_x, int padding_y)
+static void update_time_date_task(void *pvParameter)
 {
-    _lock_t lvgl_api_lock = get_lvgl_api_lock();
+    char date_str[64];
+    char time_str[16];
 
-    // Creating the container for the WiFi info
+    while (1)
+    {
+        myclock_get_date(date_str, 64);
+        myclock_get_time(time_str, 16);
+
+        _lock_acquire(&lvgl_api_lock);
+        lv_subject_copy_string(&date_subject, date_str);
+        lv_subject_copy_string(&time_subject, time_str);
+        _lock_release(&lvgl_api_lock);
+
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+}
+
+static bool clock_is_init = false;
+
+/// @brief Init the subjects for the time and date labels.
+///
+/// If a label is NULL the clock will be initialized without binding anything to this label
+/// @param time_label The label bind by the time subject
+/// @param date_label The label bind by the date subject
+static void init_clock_subjects(lv_obj_t *time_label, lv_obj_t *date_label)
+{
+    char *date_buffer = malloc(32 * sizeof(char));
+    lv_subject_init_string(&date_subject, date_buffer, NULL, 32, "date");
+
+    if (date_label)
+    {
+        lv_label_bind_text(date_label, &date_subject, NULL);
+        lv_obj_set_style_text_font(date_label, &lv_font_montserrat_16, 0);
+    }
+
+    char *time_buffer = malloc(16 * sizeof(char));
+    lv_subject_init_string(&time_subject, time_buffer, NULL, 16, "time");
+    if (time_label)
+    {
+        lv_label_bind_text(time_label, &time_subject, NULL);
+        lv_obj_set_style_text_font(time_label, &lv_font_montserrat_16, 0);
+    }
+
+    xTaskCreate(update_time_date_task, "Update date time", 2048, NULL, 1, NULL);
+    clock_is_init = true;
+}
+
+ui_top_bar_t *ui_top_bar_create()
+{
+    ui_top_bar_t *self = malloc(sizeof(ui_top_bar_t));
+    if (!self)
+        return NULL;
+
     _lock_acquire(&lvgl_api_lock);
-    lv_obj_t *wifi_container = lv_obj_create(lv_layer_top());
-    lv_obj_set_size(wifi_container, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-    lv_obj_align(wifi_container, align, 0, 0);
-    lv_obj_set_style_bg_opa(wifi_container, LV_OPA_TRANSP, 0);
-    lv_obj_set_style_border_opa(wifi_container, LV_OPA_TRANSP, 0);
 
+    // Top bar layout setup
+    lv_obj_t *top_bar_content = lv_obj_create(lv_layer_top());
+    self->content = top_bar_content;
+
+    lv_obj_set_size(top_bar_content, LCD_WIDTH, LV_SIZE_CONTENT);
+    lv_obj_align(top_bar_content, LV_ALIGN_TOP_MID, 0, 0);
+
+    lv_obj_set_style_bg_opa(top_bar_content, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_opa(top_bar_content, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_text_color(top_bar_content, lv_color_hex3(0xfff), LV_PART_MAIN);
+
+    lv_obj_set_layout(top_bar_content, LV_LAYOUT_FLEX);
+    lv_obj_set_flex_flow(top_bar_content, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(top_bar_content, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+    // Date/Time section
+    self->date = lv_label_create(top_bar_content);
+    self->time = lv_label_create(top_bar_content);
+
+    if ((ACTIVE_SCREEN)lv_obj_get_user_data(lv_screen_active()) == MAIN_MENU)
+        lv_obj_set_flag(self->time, LV_OBJ_FLAG_HIDDEN, true);
+    else
+        lv_obj_set_flag(self->date, LV_OBJ_FLAG_HIDDEN, true);
+
+    if (!clock_is_init)
+        init_clock_subjects(self->time, self->date);
+    else
+    {
+        lv_label_bind_text(self->date, &date_subject, NULL);
+        lv_label_bind_text(self->time, &time_subject, NULL);
+    }
+
+    clock_is_init = true;
+
+    // WiFi section
+    lv_obj_t *wifi_container = lv_obj_create(top_bar_content);
     lv_obj_set_layout(wifi_container, LV_LAYOUT_FLEX);
     lv_obj_set_flex_flow(wifi_container, LV_FLEX_FLOW_ROW);
+
+    lv_obj_set_size(wifi_container, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
     lv_obj_set_style_pad_gap(wifi_container, 6, 0);
+    lv_obj_set_style_pad_all(wifi_container, 0, 0);
+
+    lv_obj_set_style_bg_opa(wifi_container, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(wifi_container, 0, 0);
+    lv_obj_set_style_text_color(wifi_container, lv_color_hex3(0xfff), 0);
+
+    // WiFi ssid
+    lv_obj_t *wifi_ssid = lv_label_create(wifi_container);
+    self->wifi_icon = wifi_ssid;
+    char ssid[34];
+    wifi_get_SSID(ssid, sizeof(ssid));
+
+    lv_obj_set_style_text_font(wifi_ssid, &lv_font_montserrat_16, LV_PART_MAIN);
+    lv_label_set_text(wifi_ssid, ssid);
+
+    // WiFi icon
+    lv_obj_t *wifi_strength_icon = lv_label_create(wifi_container);
+    self->wifi_icon = wifi_strength_icon;
+
+    lv_obj_set_style_text_font(wifi_strength_icon, &wifi_font, LV_PART_MAIN);
+    lv_label_set_text(wifi_strength_icon, ICON_WIFI_HIGH);
+
     _lock_release(&lvgl_api_lock);
 
-    // Labels for the ssid name and the icon for the strength of the WiFi connection
-    lv_obj_t *wifi_label_text = NULL;
-    lv_obj_t *wifi_label_icon = NULL;
-
-    lv_style_t *wifi_style = get_mid_label_default_style(LV_ALIGN_TOP_RIGHT, LV_TEXT_ALIGN_RIGHT);
-
-    // Setting up and displaying both labels
-    _lock_acquire(&lvgl_api_lock);
-    wifi_label_text = lv_label_create(wifi_container);
-    wifi_label_icon = lv_label_create(wifi_container);
-
-    lv_obj_set_style_border_opa(wifi_label_icon, LV_OPA_100, 0);
-    lv_obj_set_style_border_opa(wifi_label_text, LV_OPA_100, 0);
-
-    lv_obj_add_style(wifi_label_text, wifi_style, LV_PART_MAIN);
-    lv_obj_set_style_text_font(wifi_label_icon, &wifi_font, LV_PART_MAIN);
-    lv_obj_set_style_text_color(wifi_label_icon, lv_color_hex(0xffffff), LV_PART_MAIN);
-
-    lv_label_set_text(wifi_label_text, ssid);
-    lv_label_set_text(wifi_label_icon, ICON_WIFI_HIGH);
-    _lock_release(&lvgl_api_lock);
-
-    return wifi_label_icon;
+    return self;
 }
 
 lv_obj_t *ui_display_text(lv_obj_t *label, const char *text, const lv_style_t *style)
@@ -384,4 +477,24 @@ void ui_delete_obj(lv_obj_t *self)
     _lock_release(&lvgl_api_lock);
 
     self = NULL;
+}
+
+void ui_clock_create(lv_align_t align)
+{
+    _lock_acquire(&lvgl_api_lock);
+
+    lv_obj_t *self = lv_label_create(lv_screen_active());
+    lv_obj_add_style(self, big_label_style, 0);
+    lv_obj_set_style_align(self, align, 0);
+
+    if (!clock_is_init)
+    {
+        init_clock_subjects(self, NULL);
+        clock_is_init = true;
+    }
+
+    lv_label_bind_text(self, &time_subject, NULL);
+    lv_obj_set_style_text_font(self, &lv_font_montserrat_30, 0);
+
+    _lock_release(&lvgl_api_lock);
 }

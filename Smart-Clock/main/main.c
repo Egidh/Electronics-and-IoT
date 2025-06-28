@@ -100,8 +100,6 @@ void app_main(void)
     ui_init();
     lv_obj_t *main_label = NULL;
 
-    _lock_t lvgl_api_lock = get_lvgl_api_lock();
-
     lv_style_t *big_style = get_big_label_default_style(LV_ALIGN_CENTER, LV_TEXT_ALIGN_CENTER);
     lv_style_t *mid_style = get_mid_label_default_style(LV_ALIGN_BOTTOM_MID, LV_TEXT_ALIGN_CENTER);
 
@@ -116,16 +114,6 @@ void app_main(void)
         DNSserver_StartSocket();
 
         lv_obj_t *msgbox = ui_message_box_create("Please connect to the WiFi", "SSID : ConnectedClock\nPassword : 12345678");
-
-        // main_label = ui_display_text(main_label, "Please connect to the WiFi", big_style);
-
-        // _lock_acquire(&lvgl_api_lock);
-        // lv_obj_t *under_label = NULL;
-        // under_label = lv_label_create(main_label);
-        // lv_obj_set_style_pad_top(under_label, 35, LV_PART_MAIN);
-        // _lock_release(&lvgl_api_lock);
-
-        // under_label = ui_display_text(under_label, "SSID : ConnectedClock\nPassword : 12345678", mid_style);
 
         while (true)
         {
@@ -152,16 +140,10 @@ void app_main(void)
 
     // Setting up the clock
     initialize_sntp();
-    xTaskCreate(display_time_task, "Clock task", 2048, NULL, 1, NULL);
+    ui_clock_create(LV_ALIGN_CENTER);
 
-    // Displaying WiFi info
-    wifi_ap_record_t ap_info;
-    esp_wifi_sta_get_ap_info(&ap_info);
-
-    char *ssid = malloc(64 * sizeof(char));
-    strcpy(ssid, (char *)ap_info.ssid);
-
-    lv_obj_t *ui_wifi_info = ui_create_wifi_object(ssid, LV_ALIGN_TOP_RIGHT, -16, 16);
+    // Setting up the top bar
+    ui_top_bar_t *top_bar = ui_top_bar_create();
 
     // Setting up the push button and its interrupt
     // Timer to debounce the push button
@@ -191,12 +173,4 @@ void app_main(void)
     gpio_isr_handler_add(GPIO_NUM_14, button_isr_handler, NULL);
 
     xTaskCreate(erase_wifi_task, "Erase Creds Task", 2048, NULL, 8, NULL);
-
-    // Display info text telling the user how to reset credentials
-    lv_obj_t *msg_erase = NULL;
-    msg_erase = ui_display_text(msg_erase, "Press the button to erase wifi credentials", mid_style);
-
-    _lock_acquire(&lvgl_api_lock);
-    lv_obj_set_style_pad_bottom(msg_erase, 8, LV_PART_MAIN);
-    _lock_release(&lvgl_api_lock);
 }

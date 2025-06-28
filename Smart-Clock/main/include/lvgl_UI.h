@@ -3,6 +3,8 @@
 #include "lvgl.h"
 #include "display.h"
 #include "WifiFont.h"
+#include "wifi_manager.h"
+#include "clock.h"
 
 #include "esp_timer.h"
 
@@ -19,6 +21,26 @@
 #define LVGL_TASK_MIN_DELAY_MS 1000 / CONFIG_FREERTOS_HZ
 #define LVGL_TASK_STACK_SIZE (4 * 1024)
 #define LVGL_TASK_PRIORITY 2
+
+/*****************************************************************************
+ *                                 Struct                                    *
+ *****************************************************************************/
+
+/// @brief UI object : utilities bar, at the top of the screen
+typedef struct ui_top_bar_t
+{
+    /// @brief The whole content (layout)
+    lv_obj_t *content;
+    /// @brief The WiFi strength icon
+    lv_obj_t *wifi_icon;
+    /// @brief The AP ssid
+    lv_obj_t *wifi_ssid;
+    /// @brief Current date
+    lv_obj_t *date;
+    /// @brief Current date
+    lv_obj_t *time;
+
+} ui_top_bar_t;
 
 /*****************************************************************************
  *                                 Styles                                    *
@@ -54,15 +76,9 @@ lv_style_t *get_notification_default_style();
 /// @return The main display
 lv_display_t *ui_init();
 
-/// @brief Set an UI object for the WiFi informations
-///
-/// The padding is relative to the align parameter
-/// @param ssid
-/// @param align The position of the object
-/// @param padding_x
-/// @param padding_y
-/// @return
-lv_obj_t *ui_create_wifi_object(const char *ssid, lv_align_t align, int padding_x, int padding_y);
+/// @brief Create an UI object : the top bar
+/// @return The top bar created
+ui_top_bar_t *ui_top_bar_create();
 
 /// @brief Display a text label on the screen
 /// @param label The lv_label to use
@@ -88,3 +104,7 @@ lv_obj_t *ui_message_box_create(const char *title, const char *msg);
 /// @brief Delete an UI object and free its memory
 /// @param self The object to be deleted
 void ui_delete_obj(lv_obj_t *self);
+
+/// @brief Create an UI object : the clock
+/// @param align Where to put the clock
+void ui_clock_create(lv_align_t align);
