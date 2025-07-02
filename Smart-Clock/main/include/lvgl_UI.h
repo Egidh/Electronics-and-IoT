@@ -44,6 +44,21 @@ typedef struct ui_top_bar_t
 
 } ui_top_bar_t;
 
+typedef struct ui_t
+{
+    /// @brief The top bar in RAM
+    ui_top_bar_t *top_bar;
+
+    /// @brief Dots representating current menu
+    lv_obj_t *menu_indicators_container;
+
+    /// @brief A double chained list for the menus
+    lv_obj_t *menus[UI_MENU_NUM];
+
+    /// @brief The number of active (created) menus
+    int menu_active_count;
+} ui_t;
+
 /*****************************************************************************
  *                                 Styles                                    *
  *****************************************************************************/
@@ -52,7 +67,8 @@ typedef struct ui_top_bar_t
 /// @param align The label alignement
 /// @param text_align The text alignement
 /// @return The style
-lv_style_t *get_big_label_default_style(lv_align_t align, lv_text_align_t text_align);
+lv_style_t *
+get_big_label_default_style(lv_align_t align, lv_text_align_t text_align);
 
 /// @brief Get the default style for mid labels
 /// @param align The label alignement
@@ -78,10 +94,6 @@ lv_style_t *get_notification_default_style();
 /// @return The main display
 lv_display_t *ui_init();
 
-/// @brief Create an UI object : the top bar
-/// @return The top bar created
-ui_top_bar_t *ui_top_bar_create();
-
 /// @brief Display a text label on the screen
 /// @param label The lv_label to use
 /// @param text The text you want to display
@@ -93,9 +105,6 @@ lv_obj_t *ui_display_text(lv_obj_t *label, const char *text, const lv_style_t *s
 /// @param text The text to display
 /// @param delay_ms The duration in ms before the notification disappears
 void ui_send_notification(const char *text, uint32_t delay_ms);
-
-/// @brief Return the lvgl lock for mutex. Be sure to call ui_init beforehand
-_lock_t get_lvgl_api_lock();
 
 /// @brief Create a message box at the center of the display
 /// @param title The title of the box
@@ -110,3 +119,19 @@ void ui_delete_obj(lv_obj_t *self);
 /// @brief Create an UI object : the clock
 /// @param align Where to put the clock
 void ui_clock_create(lv_align_t align);
+
+/// @brief Create and initialize the UI with a top bar
+/// @param main_menu If true, this will create a main menu page (clock)
+/// @param settings_menu If true, this will create a settings menu page (settings options)
+/// @return The ui created
+ui_t *ui_create(bool main_menu, bool settings_menu);
+
+/// @brief Create the main menu (a clock in the middle of the screen)
+///
+/// (Uses the lv_screen_active as the menu screen)
+/// @param self The UI struct (must be initialized)
+void ui_main_menu_create(ui_t *self);
+
+/// @brief Create the settigns menu (several settings options)
+/// @param self The UI struct (must be initialized)
+void ui_settings_menu_create(ui_t *self);

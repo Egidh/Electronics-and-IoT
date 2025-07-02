@@ -35,49 +35,25 @@ esp_err_t save_credentials_from_http(const char *ssid, const char *password)
     return err;
 }
 
-static TimerHandle_t debounce_timer = NULL;
-static bool button_enabled = true;
-static void debounce_timer_cb(TimerHandle_t timer)
-{
-    button_enabled = true;
-}
+// static void button_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
+// {
+//     data->btn_id = 0;
+//     data->state = (!gpio_get_level(14)) ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
+// }
 
-static QueueHandle_t erase_wifi_queue = NULL;
-static void IRAM_ATTR button_isr_handler(void *arg)
-{
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+// static void switch_menu_task(void *arg)
+// {
+//     lv_indev_t *button = (lv_indev_t *)arg;
 
-    if (button_enabled)
-    {
-        uint8_t signal = 1; // Signal d'effacement
-        xQueueSendFromISR(erase_wifi_queue, &signal, &xHigherPriorityTaskWoken);
-        button_enabled = false;
-        xTimerStartFromISR(debounce_timer, &xHigherPriorityTaskWoken);
-    }
+//     while (true)
+//     {
+//         lv_indev_state_t curr_state = lv_indev_get_state(button);
+//         if(curr_state == LV_INDEV_STATE_PRESSED)
 
-    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-}
 
-// Tâche pour effacer les credentials
-void erase_wifi_task(void *arg)
-{
-    uint8_t signal;
-    while (1)
-    {
-        // Attendre un signal dans la file
-        if (xQueueReceive(erase_wifi_queue, &signal, portMAX_DELAY))
-        {
-            esp_err_t err = nvs_Storage_EraseWifiCreds();
-            if (err == ESP_OK)
-                ui_send_notification("Credentials successfully erased", 1500);
-
-            else
-                ui_send_notification("An error happened", 1500);
-
-            vTaskDelay(2000 / portTICK_PERIOD_MS);
-        }
-    }
-}
+//         vTaskDelay(100/portTICK_PERIOD_MS);
+//     }
+// }
 
 void app_main(void)
 {
@@ -140,37 +116,18 @@ void app_main(void)
 
     // Setting up the clock
     initialize_sntp();
-    ui_clock_create(LV_ALIGN_CENTER);
 
-    // Setting up the top bar
-    ui_top_bar_t *top_bar = ui_top_bar_create();
+    ui_t *ui = ui_create(true, true);
 
-    // Setting up the push button and its interrupt
-    // Timer to debounce the push button
-    debounce_timer = xTimerCreate(
-        "DebounceTimer",
-        pdMS_TO_TICKS(300),
-        pdFALSE,
-        0,
-        debounce_timer_cb);
+    // Setting up the push button
+    // gpio_config_t config = {
+    //     .mode = GPIO_MODE_INPUT,
+    //     .pin_bit_mask = (1ULL << GPIO_NUM_14),
+    //     .pull_up_en = GPIO_PULLDOWN_ENABLE,
+    // };
+    // gpio_config(&config);
 
-    erase_wifi_queue = xQueueCreate(10, sizeof(uint8_t));
-    if (erase_wifi_queue == NULL)
-    {
-        ESP_LOGE("MAIN", "Error while creating queue for the push button");
-        return;
-    }
-
-    gpio_config_t config = {
-        .mode = GPIO_MODE_INPUT,
-        .pin_bit_mask = (1ULL << GPIO_NUM_14),
-        .pull_up_en = GPIO_PULLDOWN_ENABLE,
-        .intr_type = GPIO_INTR_NEGEDGE,
-    };
-    gpio_config(&config);
-
-    gpio_install_isr_service(0);
-    gpio_isr_handler_add(GPIO_NUM_14, button_isr_handler, NULL);
-
-    xTaskCreate(erase_wifi_task, "Erase Creds Task", 2048, NULL, 8, NULL);
+    // lv_indev_t *button = lv_indev_create();
+    // lv_indev_set_type(button, LV_INDEV_TYPE_BUTTON);
+    // lv_indev_set_read_cb(button, button_read_cb);
 }

@@ -3,11 +3,6 @@
 // Mutex for the lvgl api
 _lock_t lvgl_api_lock = NULL;
 
-_lock_t get_lvgl_api_lock()
-{
-    return lvgl_api_lock;
-}
-
 /*****************************************************************************
  *                                 Styles                                    *
  *****************************************************************************/
@@ -21,7 +16,6 @@ static lv_style_t *little_label_style = NULL;
 lv_style_t *get_big_label_default_style(lv_align_t align, lv_text_align_t text_align)
 {
     lv_style_t *self = malloc(sizeof(lv_style_t));
-    _lock_t lvgl_api_lock = get_lvgl_api_lock();
 
     _lock_acquire(&lvgl_api_lock);
     lv_style_init(self);
@@ -39,7 +33,6 @@ lv_style_t *get_big_label_default_style(lv_align_t align, lv_text_align_t text_a
 lv_style_t *get_mid_label_default_style(lv_align_t align, lv_text_align_t text_align)
 {
     lv_style_t *self = malloc(sizeof(lv_style_t));
-    _lock_t lvgl_api_lock = get_lvgl_api_lock();
 
     _lock_acquire(&lvgl_api_lock);
     lv_style_init(self);
@@ -160,8 +153,8 @@ esp_lcd_panel_handle_t panel_handle;
 
 typedef enum ACTIVE_SCREEN
 {
-    MAIN_MENU,
-    SETTINGS_MENU
+    UI_MAIN_MENU,
+    UI_SETTINGS_MENU
 } ACTIVE_SCREEN;
 
 void lv_flush_cb(lv_display_t *display, const lv_area_t *area, uint8_t *px_map)
@@ -199,46 +192,6 @@ uint32_t tick_cb()
 lv_subject_t date_subject;
 lv_subject_t time_subject;
 
-lv_obj_t *ui_menu_indicator_create()
-{
-    lv_obj_t *self = lv_obj_create(lv_layer_top());
-
-    lv_obj_set_size(self, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-    lv_obj_align(self, LV_ALIGN_BOTTOM_MID, 0, -16);
-
-    lv_obj_set_style_bg_opa(self, LV_OPA_TRANSP, 0);
-    lv_obj_set_style_border_opa(self, LV_OPA_0, 0);
-
-    lv_obj_set_layout(self, LV_LAYOUT_FLEX);
-    lv_obj_set_flex_flow(self, LV_FLEX_FLOW_ROW);
-
-    lv_obj_set_style_pad_all(self, 0, 0);
-    lv_obj_set_style_pad_gap(self, 6, 0);
-
-    lv_obj_t *dot[UI_MENU_NUM];
-    for (int i = 0; i < UI_MENU_NUM; i++)
-    {
-        dot[i] = lv_obj_create(self);
-        lv_obj_set_style_radius(dot[i], 100, 0);
-        lv_obj_set_style_bg_color(dot[i], lv_color_white(), 0);
-        lv_obj_set_style_bg_opa(dot[i], LV_OPA_100, 0);
-        lv_obj_set_style_border_color(dot[i], lv_color_white(), 0);
-        lv_obj_set_style_border_opa(dot[i], LV_OPA_100, 0);
-        lv_obj_set_size(dot[i], 10, 10);
-    }
-
-    if (lv_obj_get_user_data(lv_screen_active()) == MAIN_MENU)
-    {
-        lv_obj_set_style_bg_opa(dot[1], LV_OPA_TRANSP, 0);
-    }
-    else
-    {
-        lv_obj_set_style_bg_opa(dot[0], LV_OPA_TRANSP, 0);
-    }
-
-    return self;
-}
-
 lv_display_t *ui_init()
 {
     ESP_LOGI(TAG_LCD, "Initializing st7789 driver");
@@ -271,14 +224,13 @@ lv_display_t *ui_init()
     _lock_acquire(&lvgl_api_lock);
     lv_obj_set_style_bg_color(lv_screen_active(), lv_color_black(), LV_PART_MAIN);
 
-    // Basic display
-    lv_obj_t *scr = lv_screen_active();
-    lv_obj_set_style_radius(scr, 25, LV_PART_MAIN);
-    lv_obj_set_style_border_color(scr, lv_color_white(), LV_PART_MAIN);
-    lv_obj_set_style_border_width(scr, UI_BORDER_SIZE, LV_PART_MAIN);
-    lv_obj_set_user_data(scr, (void *)(uintptr_t)MAIN_MENU);
+    // Basic display with a white border
+    lv_obj_t *top_layer = lv_layer_top();
+    lv_obj_set_style_radius(top_layer, 25, LV_PART_MAIN);
+    lv_obj_set_style_border_color(top_layer, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_border_width(top_layer, UI_BORDER_SIZE, LV_PART_MAIN);
+    lv_obj_set_user_data(lv_screen_active(), (void *)(uintptr_t)UI_MAIN_MENU);
 
-    ui_menu_indicator_create();
     _lock_release(&lvgl_api_lock);
 
     // Styles initialization
@@ -340,7 +292,7 @@ static void init_clock_subjects(lv_obj_t *time_label, lv_obj_t *date_label)
     clock_is_init = true;
 }
 
-ui_top_bar_t *ui_top_bar_create()
+static ui_top_bar_t *ui_top_bar_create()
 {
     ui_top_bar_t *self = malloc(sizeof(ui_top_bar_t));
     if (!self)
@@ -367,7 +319,7 @@ ui_top_bar_t *ui_top_bar_create()
     self->date = lv_label_create(top_bar_content);
     self->time = lv_label_create(top_bar_content);
 
-    if ((ACTIVE_SCREEN)lv_obj_get_user_data(lv_screen_active()) == MAIN_MENU)
+    if ((ACTIVE_SCREEN)lv_obj_get_user_data(lv_screen_active()) == UI_MAIN_MENU)
         lv_obj_set_flag(self->time, LV_OBJ_FLAG_HIDDEN, true);
     else
         lv_obj_set_flag(self->date, LV_OBJ_FLAG_HIDDEN, true);
@@ -414,6 +366,49 @@ ui_top_bar_t *ui_top_bar_create()
     _lock_release(&lvgl_api_lock);
 
     return self;
+}
+
+static void ui_menu_indicator_create(ui_t *self)
+{
+    _lock_acquire(&lvgl_api_lock);
+    lv_obj_t *container = lv_obj_create(lv_layer_top());
+
+    lv_obj_set_size(container, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_align(container, LV_ALIGN_BOTTOM_MID, 0, -16);
+
+    lv_obj_set_style_bg_opa(container, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_opa(container, LV_OPA_0, 0);
+
+    lv_obj_set_layout(container, LV_LAYOUT_FLEX);
+    lv_obj_set_flex_flow(container, LV_FLEX_FLOW_ROW);
+
+    lv_obj_set_style_pad_all(container, 0, 0);
+    lv_obj_set_style_pad_gap(container, 6, 0);
+
+    lv_obj_t **dot = malloc(self->menu_active_count * sizeof(lv_obj_t *));
+    for (int i = 0; i < UI_MENU_NUM; i++)
+    {
+        dot[i] = lv_obj_create(container);
+        lv_obj_set_style_radius(dot[i], 100, 0);
+        lv_obj_set_style_bg_color(dot[i], lv_color_white(), 0);
+        lv_obj_set_style_bg_opa(dot[i], LV_OPA_100, 0);
+        lv_obj_set_style_border_color(dot[i], lv_color_white(), 0);
+        lv_obj_set_style_border_opa(dot[i], LV_OPA_100, 0);
+        lv_obj_set_size(dot[i], 10, 10);
+    }
+
+    if (lv_obj_get_user_data(lv_screen_active()) == UI_MAIN_MENU)
+    {
+        lv_obj_set_style_bg_opa(dot[1], LV_OPA_TRANSP, 0);
+    }
+    else
+    {
+        lv_obj_set_style_bg_opa(dot[0], LV_OPA_TRANSP, 0);
+    }
+
+    _lock_release(&lvgl_api_lock);
+
+    self->menu_indicators_container = container;
 }
 
 lv_obj_t *ui_display_text(lv_obj_t *label, const char *text, const lv_style_t *style)
@@ -519,6 +514,70 @@ void ui_delete_obj(lv_obj_t *self)
     _lock_release(&lvgl_api_lock);
 
     self = NULL;
+}
+
+void ui_main_menu_create(ui_t *self)
+{
+    if(!self) return;
+
+    self->menus[UI_MAIN_MENU] = lv_screen_active();
+    ui_clock_create(LV_ALIGN_CENTER);
+}
+
+void ui_settings_menu_create(ui_t *self)
+{
+    if (!self) return;
+
+    lv_obj_t *settings = lv_obj_create(NULL);
+    self->menus[UI_SETTINGS_MENU] = settings;
+    lv_obj_set_user_data(settings, (void *)(uintptr_t)UI_SETTINGS_MENU);
+
+    lv_obj_t *settings_label = lv_label_create(settings);
+    ui_display_text(settings_label, "Settings", big_label_style);
+}
+
+ui_t *ui_create(bool main_menu, bool settings_menu)
+{
+    ui_t *self = NULL;
+    self = malloc(sizeof(ui_t));
+
+    if (!self)
+        return NULL;
+
+    self->top_bar = ui_top_bar_create();
+    self->menu_active_count = 0;
+    memset(self->menus, 0, sizeof(self->menus));
+
+    if (main_menu)
+    {
+        ui_main_menu_create(self);
+        self->menu_active_count++;
+    }
+
+    if (settings_menu)
+    {
+        ui_settings_menu_create(self);
+        self->menu_active_count++;
+
+        if(self->menu_active_count > 1)
+            ui_menu_indicator_create(self);
+    }
+
+    return self;
+}
+
+void ui_switch_menu(ui_t *self)
+{
+    if(!self) return;
+
+    lv_obj_t *active_menu = lv_screen_active();
+    int menu_index = (int)lv_obj_get_user_data(active_menu); // The enum value and index in the ui struct menus array are the same
+
+    if(menu_index + 1 >= UI_MENU_NUM)
+        menu_index = 0;
+    else menu_index++;
+
+    lv_screen_load_anim(self->menus[menu_index], LV_SCR_LOAD_ANIM_FADE_ON, 100, 0, false);
 }
 
 void ui_clock_create(lv_align_t align)
